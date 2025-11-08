@@ -1,35 +1,51 @@
-import { Tabs } from 'expo-router';
 import React from 'react';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Tabs } from 'expo-router';
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+import { Ionicons } from '@expo/vector-icons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { View } from 'react-native';
 
-  return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        headerShown: false,
-        tabBarButton: HapticTab,
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
-    </Tabs>
-  );
+const _layout = () => {
+    return (
+        <Tabs
+            screenOptions={{
+                headerShown: false,
+                tabBarStyle: {
+                    backgroundColor: '#f8f8f8',
+                    height: 100,
+                    paddingBottom: 20,
+                    paddingTop: 15,
+                },
+                tabBarItemStyle: {
+                    marginTop: 2,
+                },
+            }}
+        >
+            <Tabs.Screen
+                name="index"
+                options={{
+                    title: "Habits",
+                    tabBarIcon: ({ color, size }) => (
+                        <View>
+                            <FontAwesome name="calendar-check-o" size={size} color={color} />
+                        </View>
+                        
+                    ),
+                }}
+                
+            />
+            <Tabs.Screen
+                name="account"
+                options={{
+                    title: "Account",
+                    tabBarIcon: ({ color, size }) => (
+                        <Ionicons name="person" size={size} color={color} />
+                    ),
+                }}
+            />
+        </Tabs>
+    )
 }
+
+export default _layout;

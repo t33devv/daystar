@@ -1,98 +1,94 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useState } from 'react';
+import { Text, TouchableOpacity, View } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import Entypo from '@expo/vector-icons/Entypo';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
-export default function HomeScreen() {
+const Habits = () => {
+  const [isHabits, setIsHabits] = useState(false);
+
+  const [activeHabits, setActiveHabits] = useState(0);
+  const [bestStreak, setBestStreak] = useState(0);
+  const [totalCheckIns, setTotalCheckIns] = useState(0);
+
+  let statsBoxStyle = "bg-blue-100 h-26 flex-1 mr-4 rounded-2xl p-5 flex items-top pt-4";
+  let statsBoxTextStyle = "text-2xl font-bold";
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View className="flex-1">
+      <LinearGradient
+        colors={['#FCD34D', '#FBBF24', '#F59E0B']} // Yellow gradient colors
+        start={{ x: 0, y: 0 }} // Top-left
+        end={{ x: 1, y: 1 }} // Bottom-right
+        className={`${isHabits ? 'h-[40%]' : 'h-[25%]'} rounded-3xl pt-[2rem]`}
+      >
+        <View className="absolute top-1 right-2 w-44 h-44 bg-yellow-400/30 rounded-full -mr-16 -mt-16" />
+        <View className="absolute bottom-2 left-3 w-40 h-40 bg-yellow-500/30 rounded-full -ml-20 -mb-20" />
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
+
+        <View className="pt-[5rem] ml-9 mr-9">
+          <View className="flex-row items-center mt-3">
+            <Text className="text-5xl font-bold text-gray-900">
+              Daystar
+            </Text>
+          </View>
+          <Text className="text-gray-900 mt-4 mb-12 text-lg">
+            Build lasting habits, one day at a time ✨
+          </Text>
+          { isHabits ? (
+            <View className="flex-row mt-10">
+              <View className={statsBoxStyle}>
+                <View>
+                  <Text className={statsBoxTextStyle}>{activeHabits}</Text>
+                  <Text>Active Habits</Text>
+                </View>
+              </View>
+                
+              <View className={statsBoxStyle}>
+                <View>
+                  <Text className={statsBoxTextStyle}>{bestStreak}</Text>
+                  <Text>Best Streak</Text>
+                </View>
+              </View>
+
+              <View className="bg-blue-100 h-26 flex-1 rounded-2xl p-5 pt-4">
+                <View>
+                  <Text className={statsBoxTextStyle}>{totalCheckIns}</Text>
+                  <Text>Total Check-ins</Text>
+                </View>
+              </View>
+            </View>
+          ) : (
+            null
+          )}
+        </View>
+      </LinearGradient>
+      <View className="flex-1 mt-8 ml-9 mr-9">
+        <TouchableOpacity className="bg-gray-900 px-4 py-3 rounded-lg flex-row items-center justify-center transition duration-300" activeOpacity={0.9}>
+          <Entypo name="plus" size={20} color="white" />
+          <Text className="text-white font-semibold ml-3">
+            Add New Habit
+          </Text>
+        </TouchableOpacity>
+        {!isHabits ? (
+          <View className="mt-[6rem] flex items-center justify-center">
+            <MaterialCommunityIcons name="star-shooting-outline" size={90} color="gray" />
+            <Text className="color-gray-600 mt-4 text-[1.2rem]">
+              No habits yet.
+            </Text>
+            <Text className="color-gray-600 mt-2 text-[1.2rem] text-center">
+              Create your first habit to start building your streaks!
+            </Text>
+          </View>
+        ) : (
+          <View>
+            {/* Render list of habits here */}
+          </View>
+        )}
+      </View>
+    </View>
+  )
 }
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+export default Habits
