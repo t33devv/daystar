@@ -16,6 +16,8 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (idToken: string) => Promise<void>;
+  loginWithEmail: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
 }
@@ -24,6 +26,8 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   user: null,
   token: null,
+  loginWithEmail: async () => {},
+  signup: async () => {},
   login: async () => {},
   logout: async () => {},
   loading: true,
@@ -91,6 +95,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const loginWithEmail = async (email: string, password: string) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/login`, {
+        email,
+        password
+      });
+
+      if (response.data.success) {
+        const jwtToken = response.data.token;
+        const userData = response.data.user;
+
+        await SecureStore.setItemAsync('userToken', jwtToken);
+
+        setToken(jwtToken);
+        setUser(userData);
+        setIsAuthenticated(true);
+      }
+    } catch (error: any) {
+      console.error('Email login failed:', error);
+      const errorMessage = error.response?.data?.error || "Login failed. Please try again."
+      throw new Error(errorMessage);
+    }
+  };
+
+  const signup = async (email: string, password: string, name: string) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/signup`, {
+        email,
+        password,
+        name
+      });
+
+      if (response.data.success) {
+        const jwtToken = response.data.token;
+        const userData = response.data.user;
+        
+        await SecureStore.setItemAsync('userToken', jwtToken);
+        setToken(jwtToken);
+        setUser(userData);
+        setIsAuthenticated(true);
+      }
+    } catch (error: any) {
+      console.error('Signup failed:', error);
+      const errorMessage = error.response?.data?.error || 'Signup failed. Please try again.';
+      throw new Error(errorMessage);
+    }
+  }
+
   const logout = async () => {
     await SecureStore.deleteItemAsync('userToken');
     setToken(null);
@@ -99,7 +151,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, token, login, loginWithEmail, signup, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
