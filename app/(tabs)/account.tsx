@@ -1,9 +1,10 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+
+const SCREEN_HEIGHT = require('react-native').Dimensions.get('window').height;
 
 const Account = () => {
   const { isAuthenticated, user, logout, loading } = useAuth();
@@ -37,16 +38,9 @@ const Account = () => {
   // If logged in, show account info
   return (
     <View className="flex-1 bg-gray-50">
-      {/* Header with Gradient */}
-      <LinearGradient
-        colors={['#FCD34D', '#FBBF24', '#F59E0B']}
-        className="pt-16 pb-8 px-8"
-      >
-        <Text className="text-3xl font-bold text-gray-900 mb-2">Account</Text>
-      </LinearGradient>
 
       {/* User Info Card */}
-      <View className="px-8 mt-6">
+      <View className="px-8 mt-[30%]">
         <View className="bg-white rounded-2xl p-6 shadow-sm mb-6">
           <View className="items-center mb-6">
             {/* Profile Picture */}
@@ -73,7 +67,9 @@ const Account = () => {
 
         {/* Account Options */}
         <View className="bg-white rounded-2xl p-4 shadow-sm mb-6">
-          <TouchableOpacity className="flex-row items-center py-4 border-b border-gray-100">
+          <TouchableOpacity className="flex-row items-center py-4 border-b border-gray-100"
+            onPress={() => router.push('/settings' as any)}
+          >
             <MaterialIcons name="settings" size={24} color="#6B7280" />
             <Text className="ml-4 text-gray-900 font-medium">Settings</Text>
             <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" className="ml-auto" />

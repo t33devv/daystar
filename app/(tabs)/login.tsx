@@ -1,17 +1,37 @@
 import { Entypo, MaterialIcons } from '@expo/vector-icons';
-import * as Google from 'expo-auth-session/providers/google';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Dimensions, KeyboardAvoidingView, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput, // Make sure this is imported
+  TouchableOpacity,
+  View
+} from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
-import { GOOGLE_CONFIG } from '../config/auth';
+
 
 WebBrowser.maybeCompleteAuthSession();
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const checkPasswordStrength = (password: string, activeTab: 'login' | 'signup') => {
+  if (activeTab === 'signup') {
+    const minLength = password.length >= 6;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+
+
+  }
+}
 
 const Login = () => {
 
@@ -24,46 +44,16 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);  // Separate loading for email auth
 
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    clientId: GOOGLE_CONFIG.webClientId,
-    redirectUri: 'https://auth.expo.io/@anonymous/Daystar'
-  });
+  const redirectUri = 'https://auth.expo.io/@anonymous/Daystar';
 
   useEffect(() => {
     if (isAuthenticated) {
       router.replace('/(tabs)');
     }
+
+    
+    
   }, [isAuthenticated]);
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { authentication } = response;
-      if (authentication?.idToken) {
-        handleGoogleSignIn(authentication.idToken);
-      }
-    } else if (response?.type === 'error') {
-      setLoading(false);
-      console.error('Auth error:', response.error);
-      Alert.alert('Authentication Error', 'Failed to authenticate with Google');
-    }
-  }, [response]);
-
-  const handleGoogleSignIn = async (idToken: string) => {
-    try {
-      await login(idToken);
-      router.replace('/(tabs)');
-    } catch (error) {
-      console.error('Google sign in error:', error);
-      Alert.alert('Login Failed', 'Unable to sign in with Google. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGooglePress = () => {
-    setLoading(true);
-    promptAsync();
-  };
 
   // NEW: Handle email/password login
   const handleEmailLogin = async () => {
@@ -83,35 +73,38 @@ const Login = () => {
     }
   };
 
-  // NEW: Handle email/password signup
   const handleEmailSignup = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Error', 'Please enter both email and password');
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
-      return;
-    }
+    // Remove the client-side password length check - let backend handle it
+    // The backend will return a proper error message
 
     setEmailLoading(true);
     try {
       await signup(email.trim(), password, name.trim() || 'User');
       router.replace('/(tabs)');
     } catch (error: any) {
+      // Show the error message from backend (which includes password requirements)
       Alert.alert('Signup Failed', error.message || 'Could not create account. Please try again.');
     } finally {
       setEmailLoading(false);
     }
   };
-
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1"
+      style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
     >
-      <View className="flex-1 bg-gray-100">
+      <ScrollView
+        style={{ flex: 1, backgroundColor: '#f3f4f6' }}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         {/* Gradient Header */}
         <LinearGradient
           colors={['#FCD34D', '#FBBF24', '#F59E0B']}
@@ -130,7 +123,7 @@ const Login = () => {
           </View>
         </LinearGradient>
 
-        <View className="flex-1 -mt-12 mx-6">
+        <View className="-mt-12 mx-6 pb-8">
           <View className="bg-white rounded-3xl shadow-md p-6">
             
             {/* Tab Switcher */}
@@ -219,6 +212,16 @@ const Login = () => {
               </View>
             </View>
 
+            { activeTab === 'signup' ? (
+              <View className="mb-4">
+                <Text className="text-sm text-gray-600">
+                  { password.length >= 6 ? null : 'Password must be at least 6 characters long \n' }
+                  { /[A-Z]/.test(password) ? null : ('Password must contain at least 1 uppercase letter \n') }
+                  { /[a-z]/.test(password) ? null : ('Password must contain at least 1 lowercase letter \n') }
+                </Text>
+              </View>
+            ) : null}
+
             {/* Sign In/Register Button */}
             <TouchableOpacity 
               onPress={activeTab === 'login' ? handleEmailLogin : handleEmailSignup}
@@ -243,35 +246,9 @@ const Login = () => {
                 </Text>
               ) : null}
             </TouchableOpacity>
-
-            {/* Divider with OR */}
-            <View className="flex-row items-center my-6">
-              <View className="flex-1 h-px bg-gray-300" />
-              <Text className="mx-4 text-gray-500 font-medium">OR</Text>
-              <View className="flex-1 h-px bg-gray-300" />
-            </View>
-
-            {/* Google Sign In Button */}
-            {loading ? (
-              <View className="py-4">
-                <ActivityIndicator size="small" color="#F59E0B" />
-              </View>
-            ) : (
-              <TouchableOpacity 
-                onPress={handleGooglePress}
-                disabled={!request || emailLoading}
-                className="bg-white border-2 border-gray-200 rounded-xl py-4 shadow-sm flex-row items-center justify-center"
-                activeOpacity={0.8}
-              >
-                <MaterialIcons name="login" size={22} color="#4285F4" />
-                <Text className="text-gray-900 text-center font-semibold text-lg ml-3">
-                  Continue with Google
-                </Text>
-              </TouchableOpacity>
-            )}
           </View>
         </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };

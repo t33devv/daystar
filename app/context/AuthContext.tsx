@@ -1,8 +1,9 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import api from '../utils/api';
 
-const API_URL = 'http://localhost:1337/api'; // Your Express backend
+const API_URL = 'http://192.168.0.190:1337/api'; // Your Express backend
 
 interface User {
   id: string;
@@ -19,6 +20,7 @@ interface AuthContextType {
   loginWithEmail: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (name: string, password?: string) => Promise<User>;
   loading: boolean;
 }
 
@@ -30,6 +32,10 @@ const AuthContext = createContext<AuthContextType>({
   signup: async () => {},
   login: async () => {},
   logout: async () => {},
+  updateProfile: async (name: string, password?: string) => {
+    // Default implementation - should never be called
+    throw new Error('AuthContext not initialized');
+  },
   loading: true,
 });
 
@@ -44,6 +50,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     checkAuthStatus();
   }, []);
+
+  const updateProfile = async (name: string, password?: string) => {
+    try {
+      const response = await api.put('/auth/profile', {
+        name,
+        password: password || undefined
+      });
+
+      if (response.data.success) {
+        const updatedUser = response.data.user;
+        setUser(updatedUser);
+        return updatedUser;
+      }
+    } catch (error: any) {
+      console.error('Update profile failed:', error);
+      const errorMessage = error.response?.data?.error || 'Failed to update profile';
+      throw new Error(errorMessage);
+    }
+  };
 
   const checkAuthStatus = async () => {
     try {
@@ -119,6 +144,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const checkPassword = async (password: string) => {
+    try {
+      const response = await axios.post(`${API_URL}/auth/checkPassword`, {
+        password
+      })
+
+      if (response.data.success) {
+        return new String('Password meets all requirements!');
+      } else {
+        return new String(response.data.details);
+      }
+    } catch (error: any) {
+      console.log('Password check error: ', error);
+      const errorMessage = error.response?.data?.error || 'Signup failed. Please try again.';
+      throw new Error(errorMessage);
+    }
+  };
+
   const signup = async (email: string, password: string, name: string) => {
     try {
       const response = await axios.post(`${API_URL}/auth/register`, {
@@ -137,11 +180,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsAuthenticated(true);
       }
     } catch (error: any) {
-      console.error('Signup failed:', error);
-      const errorMessage = error.response?.data?.error || 'Signup failed. Please try again.';
+      // Don't log to console - just format the error message
+      let errorMessage = 'Signup failed. Please try again.';
+      
+      if (error.response?.data) {
+        const data = error.response.data;
+        
+        // Handle password validation errors with details
+        if (data.details) {
+          // Format the validation errors nicely
+          const details = data.details;
+          const errors = Object.values(details)
+            .filter((err: any) => err !== null)
+            .join('\n• ');
+          errorMessage = errors ? `Password requirements:\n• ${errors}` : data.errors || errorMessage;
+        } else if (data.error) {
+          errorMessage = data.error;
+        }
+      }
+      
       throw new Error(errorMessage);
     }
-  }
+  };
 
   const logout = async () => {
     await SecureStore.deleteItemAsync('userToken');
@@ -151,7 +211,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, token, login, loginWithEmail, signup, logout, loading }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, token, login, loginWithEmail, signup, logout, updateProfile, loading }}>
       {children}
     </AuthContext.Provider>
   );
