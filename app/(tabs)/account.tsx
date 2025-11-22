@@ -4,6 +4,8 @@ import React, { useEffect } from 'react';
 import { ActivityIndicator, Image, Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 
+import { Linking } from 'react-native';
+
 const SCREEN_HEIGHT = require('react-native').Dimensions.get('window').height;
 
 const Account = () => {
@@ -75,13 +77,7 @@ const Account = () => {
             <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" className="ml-auto" />
           </TouchableOpacity>
           
-          <TouchableOpacity className="flex-row items-center py-4 border-b border-gray-100">
-            <MaterialIcons name="notifications" size={24} color="#6B7280" />
-            <Text className="ml-4 text-gray-900 font-medium">Notifications</Text>
-            <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" className="ml-auto" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity className="flex-row items-center py-4">
+          <TouchableOpacity className="flex-row items-center py-4" onPress={() => Linking.openURL('mailto:tommy@microjam.dev')} >
             <MaterialIcons name="help" size={24} color="#6B7280" />
             <Text className="ml-4 text-gray-900 font-medium">Help & Support</Text>
             <MaterialIcons name="chevron-right" size={24} color="#9CA3AF" className="ml-auto" />

@@ -10,7 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.t33dev.daystar"
+      "bundleIdentifier": "com.t33dev.daystar",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Daystar needs access to your camera to take photos for habit check-ins.",
+        "NSPhotoLibraryUsageDescription": "Daystar needs access to your photo library to save check-in photos."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -20,6 +24,11 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "package": "com.t33dev.daystar",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },

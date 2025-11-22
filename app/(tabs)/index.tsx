@@ -1,7 +1,9 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import Entypo from '@expo/vector-icons/Entypo';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -27,6 +29,8 @@ interface Habit {
 }
 
 const Habits = () => {
+  const router = useRouter();
+  
   const { isAuthenticated, loading: authLoading } = useAuth(); // Add this
   const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,8 +42,135 @@ const Habits = () => {
   const [selectedColor, setSelectedColor] = useState('#3B82F6');
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
-  const [checkingIn, setCheckingIn] = useState<number | null>(null); // Track which habit is being checked in
+  const [deleting, setDeleting] = useState(false);
+  const [checkingIn, setCheckingIn] = useState<number | null>(null);
+  const [checkInPhoto, setCheckInPhoto] = useState<string | null>(null);
 
+  const [stats, setStats] = useState({
+    activeHabits: 0,
+    bestStreak: 0,
+    totalCheckIns: 0
+  });
+
+  const fetchStats = async () => {
+    if (!isAuthenticated) return;
+    
+    try {
+      const response = await api.get('/habits/stats');
+      if (response.data.success) {
+        setStats(response.data.stats);
+      }
+    } catch (error: any) {
+      console.error('Fetch stats error:', error);
+    }
+  };
+
+  const requestCameraPermission = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permission Required',
+        'Camera permission is required to take check-in photos.'
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const takePhoto = async (): Promise<string | null> => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) return null;
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        return result.assets[0].uri;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+      return null;
+    }
+  };
+
+  const uploadImage = async (imageUri: string): Promise<string | null> => {
+    try {
+      const formData = new FormData();
+      
+      // Get filename from URI
+      const filename = imageUri.split('/').pop() || 'photo.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : `image/jpeg`;
+
+      formData.append('image', {
+        uri: imageUri,
+        name: filename,
+        type: type,
+      } as any);
+
+      const response = await api.post('/habits/upload-image', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data.success) {
+        return response.data.imageUrl;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteHabit = async () => {
+    if (!editingHabit) return;
+
+    // Confirm deletion
+    Alert.alert(
+      'Delete Habit',
+      `Are you sure you want to delete "${editingHabit.title}"? This action cannot be undone.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              const response = await api.delete(`/habits/${editingHabit.id}`);
+              
+              if (response.data.success) {
+                Alert.alert('Success', 'Habit deleted successfully!');
+                handleCloseModal();
+                await fetchHabits();
+              }
+            } catch (error: any) {
+              console.error('Delete habit error:', error);
+              Alert.alert(
+                'Error',
+                error.response?.data?.error || 'Failed to delete habit. Please try again.'
+              );
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+  
   // Icon options
   const icons = ['💪', '📚', '🏃', '🧘', '💧', '🎨', '✍️', '🎵', '🌱', '⭐', '🎯'];
 
@@ -68,9 +199,9 @@ const Habits = () => {
       if (response.data.success) {
         setHabits(response.data.habits || []);
       }
+
+      await fetchStats();
     } catch (error: any) {
-      // Only log/show error if user is authenticated
-      // If 401 and not authenticated, it's expected - don't show error
       if (isAuthenticated && error.response?.status !== 401) {
         console.error('Fetch habits error:', error);
       }
@@ -155,7 +286,6 @@ const Habits = () => {
     }
   };
 
-  // NEW: Handle updating habit
   const handleUpdateHabit = async () => {
     if (!habitName.trim() || !editingHabit) {
       Alert.alert('Error', 'Please enter a habit name');
@@ -187,25 +317,81 @@ const Habits = () => {
     }
   };
 
+  const canCheckIn = (habit: Habit): { canCheckIn: boolean; message?: string } => {
+    if (!habit.last_check_in) {
+      // No previous check-in, allow it
+      return { canCheckIn: true };
+    }
+
+    const lastCheckIn = new Date(habit.last_check_in);
+    const now = new Date();
+    const hoursSinceLastCheckIn = (now.getTime() - lastCheckIn.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceLastCheckIn < 24) {
+      const hoursRemaining = Math.ceil(24 - hoursSinceLastCheckIn);
+      return {
+        canCheckIn: false,
+        message: `Please wait ${hoursRemaining} more hour${hoursRemaining !== 1 ? 's' : ''} before checking in again.`
+      };
+    }
+
+    return { canCheckIn: true };
+  };
+
   const handleCheckIn = async (habitId: number) => {
+    // Find the habit to check last_check_in
+    const habit = habits.find(h => h.id === habitId);
+    
+    if (!habit) {
+      Alert.alert('Error', 'Habit not found');
+      return;
+    }
+
+    // Check if 24 hours have passed
+    const checkResult = canCheckIn(habit);
+    if (!checkResult.canCheckIn) {
+      Alert.alert('Wait Required', checkResult.message || 'You must wait 24 hours between check-ins.');
+      return;
+    }
+
+    // Now proceed with camera
     setCheckingIn(habitId);
     try {
-      // Get current date in user's local timezone (YYYY-MM-DD format)
+      const photoUri = await takePhoto();
+      
+      if (!photoUri) {
+        setCheckingIn(null);
+        return;
+      }
+
+      setCheckInPhoto(photoUri);
+
+      const imageUrl = await uploadImage(photoUri);
+      
+      if (!imageUrl) {
+        Alert.alert('Error', 'Failed to upload photo. Please try again.');
+        setCheckingIn(null);
+        return;
+      }
+
       const now = new Date();
-      const localDate = now.toLocaleDateString('en-CA'); // Returns YYYY-MM-DD format
+      const localDate = now.toLocaleDateString('en-CA');
       
       const response = await api.post(`/habits/${habitId}/checkin`, {
-        localDate: localDate
+        localDate: localDate,
+        imageUrl: imageUrl
       });
       
       if (response.data.success) {
-        // Refresh habits to get updated streak
         await fetchHabits();
+        await fetchStats();
+        setCheckInPhoto(null);
         Alert.alert('Success', `Great job! Your streak is now ${response.data.habit.streak} days! 🔥`);
       }
     } catch (error: any) {
+      console.error('Check-in error:', error);
       Alert.alert(
-        'Try again later',
+        'Error',
         error.response?.data?.error || 'Failed to check in. Please try again.'
       );
     } finally {
@@ -268,7 +454,7 @@ const Habits = () => {
                     borderColor: 'rgba(255, 255, 255, 0.3)',
                   }}
                 >
-                  <Text className="text-5xl font-bold text-black mb-2">{bestStreak}</Text>
+                  <Text className="text-5xl font-bold text-black mb-2">{stats.bestStreak}</Text>
                   <Text className="text-black/90 text-xs font-semibold">Best Streak</Text>
                 </View>
 
@@ -280,7 +466,7 @@ const Habits = () => {
                     borderColor: 'rgba(255, 255, 255, 0.3)',
                   }}
                 >
-                  <Text className="text-5xl font-bold text-black mb-2">{totalCheckIns}</Text>
+                  <Text className="text-5xl font-bold text-black mb-2">{stats.totalCheckIns}</Text>
                   <Text className="text-black/90 text-xs font-semibold">Total Check-ins</Text>
                 </View>
               </View>
@@ -318,78 +504,85 @@ const Habits = () => {
           ) : (
             <View className="mt-6">
               {habits.map((habit) => (
-                <View
+                <TouchableOpacity
                   key={habit.id}
-                  className="bg-white rounded-2xl p-4 mb-4 shadow-sm"
-                  style={{
-                    borderLeftWidth: 4,
-                    borderLeftColor: habit.colour,
-                  }}
+                  onPress={() => router.push(`/habit/${habit.id}` as any)}
+                  activeOpacity={0.9}
                 >
-                  {/* Header with Gear Icon */}
-                  <View className="flex-row items-start justify-between mb-3">
-                    <View className="flex-row items-start flex-1">
-                      {/* Icon */}
-                      <View
-                        className="w-14 h-14 rounded-xl items-center justify-center mr-4"
-                        style={{ backgroundColor: habit.colour + '15' }}
-                      >
-                        <Text style={{ fontSize: 28 }}>{habit.icon}</Text>
-                      </View>
-                      
-                      {/* Habit Info */}
-                      <View className="flex-1">
-                        <Text className="text-2xl font-bold text-gray-900 mb-1">
-                          {habit.title}
-                        </Text>
-                        {habit.description && (
-                          <Text className="text-gray-600 text-sm">
-                            {habit.description}
+                  <View
+                    key={habit.id}
+                    className="bg-white rounded-2xl p-4 mb-4 shadow-sm"
+                    style={{
+                      borderLeftWidth: 4,
+                      borderLeftColor: habit.colour,
+                    }}
+                  >
+                    {/* Header with Gear Icon */}
+                    <View className="flex-row items-start justify-between mb-3">
+                      <View className="flex-row items-start flex-1">
+                        {/* Icon */}
+                        <View
+                          className="w-14 h-14 rounded-xl items-center justify-center mr-4"
+                          style={{ backgroundColor: habit.colour + '15' }}
+                        >
+                          <Text style={{ fontSize: 28 }}>{habit.icon}</Text>
+                        </View>
+                        
+                        {/* Habit Info */}
+                        <View className="flex-1">
+                          <Text className="text-2xl font-bold text-gray-900 mb-1">
+                            {habit.title}
                           </Text>
-                        )}
+                          {habit.description && (
+                            <Text className="text-gray-600 text-sm">
+                              {habit.description}
+                            </Text>
+                          )}
+                        </View>
                       </View>
+
+                      {/* Gear Button */}
+                      <TouchableOpacity
+                        onPress={() => handleEditHabit(habit)}
+                        className="p-2"
+                        activeOpacity={0.7}
+                      >
+                        <MaterialIcons name="settings" size={24} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+                    
+                    {/* Streak Info - Show actual streak */}
+                    <View className="flex-row items-center mb-5 mt-2">
+                      <MaterialCommunityIcons name="fire" size={20} color={habit.colour} />
+                      <Text className="text-2xl font-bold text-gray-900 ml-2">
+                        {habit.streak || 0} {habit.streak === 1 ? 'day' : 'days'}
+                      </Text>
+                      <Text className="text-gray-500 text-base ml-3 mt-1">Best: {habit.streak || 0}</Text>
                     </View>
 
-                    {/* Gear Button */}
+                    {/* Check-in Button */}
                     <TouchableOpacity
-                      onPress={() => handleEditHabit(habit)}
-                      className="p-2"
-                      activeOpacity={0.7}
+                      onPress={() => handleCheckIn(habit.id)}
+                      disabled={checkingIn === habit.id}
+                      className="rounded-xl py-3 mt-2 flex-row items-center justify-center"
+                      style={{ 
+                        backgroundColor: habit.colour,
+                        opacity: checkingIn === habit.id ? 0.6 : 1
+                      }}
+                      activeOpacity={0.8}
                     >
-                      <MaterialIcons name="settings" size={24} color="#6B7280" />
+                      {checkingIn === habit.id ? (
+                        <ActivityIndicator size="small" color="white" />
+                      ) : (
+                        <>
+                          <MaterialIcons name="camera-alt" size={22} color="white" />
+                          <Text className="text-white font-bold text-base ml-2">Check in</Text>
+                        </>
+                      )}
                     </TouchableOpacity>
                   </View>
-                  
-                  {/* Streak Info - Show actual streak */}
-                  <View className="flex-row items-center mb-5 mt-2">
-                    <MaterialCommunityIcons name="fire" size={20} color={habit.colour} />
-                    <Text className="text-2xl font-bold text-gray-900 ml-2">
-                      {habit.streak || 0} {habit.streak === 1 ? 'day' : 'days'}
-                    </Text>
-                    <Text className="text-gray-500 text-base ml-3 mt-1">Best: {habit.streak || 0}</Text>
-                  </View>
-
-                  {/* Check-in Button */}
-                  <TouchableOpacity
-                    onPress={() => handleCheckIn(habit.id)}
-                    disabled={checkingIn === habit.id}
-                    className="rounded-xl py-3 mt-2 flex-row items-center justify-center"
-                    style={{ 
-                      backgroundColor: habit.colour,
-                      opacity: checkingIn === habit.id ? 0.6 : 1
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    {checkingIn === habit.id ? (
-                      <ActivityIndicator size="small" color="white" />
-                    ) : (
-                      <>
-                        <MaterialIcons name="camera-alt" size={22} color="white" />
-                        <Text className="text-white font-bold text-base ml-2">Check in</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
+                
               ))}
             </View>
           )}
@@ -529,21 +722,39 @@ const Habits = () => {
 
             {/* Create/Update Habit Button */}
             <View className="px-6 pb-6 pt-4 border-t border-gray-200">
-              <TouchableOpacity
-                onPress={editingHabit ? handleUpdateHabit : handleCreateHabit}
-                className="bg-gray-900 rounded-xl py-4"
-                activeOpacity={0.8}
-                disabled={!habitName.trim() || creating || updating}
-                style={{ opacity: habitName.trim() && !creating && !updating ? 1 : 0.5 }}
-              >
-                {creating || updating ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <Text className="text-white text-center font-semibold text-lg">
-                    {editingHabit ? 'Update Habit' : 'Create Habit'}
-                  </Text>
+              <View className="flex-row items-center gap-3">
+                <TouchableOpacity
+                  onPress={editingHabit ? handleUpdateHabit : handleCreateHabit}
+                  className="bg-gray-900 rounded-xl py-4 flex-1"
+                  activeOpacity={0.8}
+                  disabled={!habitName.trim() || creating || updating}
+                  style={{ opacity: habitName.trim() && !creating && !updating ? 1 : 0.5 }}
+                >
+                  {creating || updating ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text className="text-white text-center font-semibold text-lg">
+                      {editingHabit ? 'Update Habit' : 'Create Habit'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+                
+                {editingHabit && (
+                  <TouchableOpacity
+                    onPress={handleDeleteHabit}
+                    className="bg-red-500 rounded-xl p-3"
+                    activeOpacity={0.8}
+                    disabled={deleting}
+                    style={{ opacity: deleting ? 0.5 : 1 }}
+                  >
+                    {deleting ? (
+                      <ActivityIndicator size="small" color="white" />
+                    ) : (
+                      <MaterialIcons name="delete" size={24} color="white" />
+                    )}
+                  </TouchableOpacity>
                 )}
-              </TouchableOpacity>
+              </View>
             </View>
           </Pressable>
         </Pressable>

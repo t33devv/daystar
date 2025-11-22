@@ -9,6 +9,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="login" />
         <Stack.Screen name="settings" />
+        <Stack.Screen name="habit/[id]" />
       </Stack>
     </AuthProvider>
   );
