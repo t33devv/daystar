@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'http://192.168.0.190:1337/api';
+const API_URL = 'https://api-daystar.onrender.com/api';
 
 // Create axios instance with auth interceptor
 const api = axios.create({

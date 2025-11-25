@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import api from '../utils/api';
 
-const API_URL = 'http://192.168.0.190:1337/api'; // Your Express backend
+const API_URL = 'https://api-daystar.onrender.com/api'; // Your Express backend
 
 interface User {
   id: string;

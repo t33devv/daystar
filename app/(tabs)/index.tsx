@@ -3,6 +3,7 @@ import Entypo from '@expo/vector-icons/Entypo';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -19,6 +20,35 @@ import {
 import { useAuth } from '../context/AuthContext'; // Add this import
 import api from '../utils/api';
 
+const scheduleFollowUpReminders = async () => {
+  console.log("Scheduled")
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Habit Reminder',
+      body: 'It has been 24 hours since your last check-in',
+      data: { type: 'habit_reminder' },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 5,
+      repeats: false
+    },
+  });
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Habit Reminder',
+      body: '40 hours passed—time to check in!',
+      data: { type: 'habit_reminder', delayHours: 40 },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 40 * 3600,
+      repeats: false
+    },
+  });
+};
+
 interface Habit {
   id: number;
   title: string;
@@ -29,6 +59,7 @@ interface Habit {
 }
 
 const Habits = () => {
+  
   const router = useRouter();
   
   const { isAuthenticated, loading: authLoading } = useAuth(); // Add this
@@ -387,6 +418,7 @@ const Habits = () => {
         await fetchStats();
         setCheckInPhoto(null);
         Alert.alert('Success', `Great job! Your streak is now ${response.data.habit.streak} days! 🔥`);
+        scheduleFollowUpReminders();
       }
     } catch (error: any) {
       console.error('Check-in error:', error);

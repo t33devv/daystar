@@ -3,12 +3,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Image,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
@@ -30,7 +30,10 @@ const HabitDetail = () => {
 
   const getImageUrl = (imageUrl?: string | null): string | null => {
     if (!imageUrl) return null;
-    const baseUrl = 'http://192.168.0.190:1337';
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return imageUrl;
+    }
+    const baseUrl = 'https://api-daystar.onrender.com/api';
     return `${baseUrl}${imageUrl}`;
   };
 
@@ -135,8 +138,8 @@ const HabitDetail = () => {
             <Text className="text-gray-400 text-sm mt-2">Start checking in to see your progress!</Text>
           </View>
         ) : (
-          <View>
-            <Text className="text-2xl font-bold text-gray-900 mb-4">
+          <View className="px-3">
+            <Text className="text-2xl font-bold text-gray-900 mb-6">
               Your Journey ({checkIns.length} {checkIns.length === 1 ? 'day' : 'days'})
             </Text>
             {checkIns.map((checkIn) => (
