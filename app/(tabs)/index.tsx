@@ -26,11 +26,11 @@ const scheduleFollowUpReminders = async () => {
     content: {
       title: 'Habit Reminder',
       body: 'It has been 24 hours since your last check-in',
-      data: { type: 'habit_reminder' },
+      data: { type: 'habit_reminder', delayHours: 24 },
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: 5,
+      seconds: 24 * 3600,
       repeats: false
     },
   });
@@ -44,6 +44,19 @@ const scheduleFollowUpReminders = async () => {
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: 40 * 3600,
+      repeats: false
+    },
+  });
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Habit Expired!',
+      body: '48 hours passed, your habit has expired!',
+      data: { type: 'habit_reminder', delayHours: 48 },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 48 * 3600,
       repeats: false
     },
   });
