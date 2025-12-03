@@ -1,50 +1,55 @@
-# Welcome to your Expo app 👋
+# Daystar - Habit Tracker App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Made with React Native, photo-checkins, habit tracker
 
-## Get started
+<p align="center">
+  <img src="https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React Native" />
+  <img src="https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white" alt="Expo" />
+  <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind" />
+</p>
 
-1. Install dependencies
+## 🌟 Features
 
-   ```bash
-   npm install
-   ```
+**User auth**
+- Email/password registration and login
+- Google OAuth2.0 integration
+- JWT token-based auth
+- Profile management
 
-2. Start the app
+**Habit Management**
+- Create/read/update/delete habits
+- Customizable icons/colors
+- Active 24-48 hour daily habit streaks
 
-   ```bash
-   npx expo start
-   ```
+**Check-in System**
+- Photo-based checkins with Cloudinary storage
+- Automatic daily check-in increment/reset
 
-In the output, you'll find options to open the app in a
+**Smart Notifications**
+- Reminders 24 hours and 40 hours after missing a check-in
+- Native iOS and Android support
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 🛠️ Tech Stack
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **Framework**: [Expo](https://expo.dev/) ~54.0
+- **UI**: React Native 0.81 + [NativeWind](https://www.nativewind.dev/) (Tailwind CSS)
+- **Navigation**: [Expo Router](https://docs.expo.dev/router/introduction/) (file-based routing)
+- **State Management**: React Context API
+- **Authentication**: JWT + Google OAuth (expo-auth-session)
+- **Storage**: expo-secure-store (encrypted token storage)
+- **Image Picker**: expo-image-picker
+- **Notifications**: expo-notifications
+- **HTTP Client**: Axios
+- **Icons**: @expo/vector-icons (Material Icons, Entypo)
 
-## Get a fresh project
+## Check out the [backend repository](https://github.com/t33devv/daystar-backend)
 
-When you're ready, run:
+## 🙏 Acknowledgments
 
-```bash
-npm run reset-project
-```
+- [Expo](https://expo.dev/) for the amazing React Native framework
+- [NativeWind](https://www.nativewind.dev/) for Tailwind CSS in React Native
+- [Cloudinary](https://cloudinary.com/) for image hosting
+- Icon designs inspired by modern habit tracking apps
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+# ⭐ Star this repo if you found it interesting!
